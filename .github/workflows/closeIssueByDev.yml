@@ -1,0 +1,29 @@
+name: Close Issues on PR Merge
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - dev
+
+jobs:
+  close_issues:
+    runs-on: ubuntu-latest
+
+    if: github.event.pull_request.merged == true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Close linked issues
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pr_number=${{ github.event.pull_request.number }}
+          owner=${{ github.repository_owner }}
+          repo=${{ github.event.repository.name }}
+          issues=$(gh pr view $pr_number --json closingIssuesReferences --jq '.closingIssuesReferences.nodes[].number')
+          for issue in $issues; do
+            gh issue close $issue -R $owner/$repo
+          done
